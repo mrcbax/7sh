@@ -74,7 +74,7 @@ void process_cmd(char *cmd) {
         }
     }
     if (strcmp(prog, "exit") == 0) {
-        exit(0);
+      kill_shell();
     } else {
         fork_run_wait(prog, args);
     }

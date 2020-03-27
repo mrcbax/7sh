@@ -61,20 +61,20 @@ void get_cmd(char * prompt, char **command) {
 void process_cmd(char *cmd) {
     int len = strlen(cmd);
     char *prog;
-    char **args = malloc(sizeof(char));
+    char **args = NULL;
     char *token = strtok(cmd, " ");
     prog = token;
     int ct = 0;
     while (token != NULL) {
         token = strtok(NULL, " ");
         if (token != NULL) {
-            args = realloc(args, sizeof(args)+((strlen(token)+1)*sizeof(char)));
+            args = realloc(args, ct*sizeof(char *));
             args[ct] = token;
             ct++;
         }
     }
     if (strcmp(prog, "exit") == 0) {
-      kill_shell();
+        kill_shell();
     } else {
         fork_run_wait(prog, args);
     }

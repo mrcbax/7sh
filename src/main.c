@@ -32,9 +32,11 @@ void cmd_not_found(char *cmd) {
 void fork_run_wait(char *cmd, char **args) {
   if ((curr_proc = fork()) == 0) { //store the fork pid so we can C-c it.
     execvp(cmd, args);
+    free(args);
+    free(cmd);
     cmd_not_found(cmd);
   }
-  wait(NULL);
+  wait(&curr_proc);
 }
 // END Borrowed from teenysh.c
 
@@ -50,10 +52,9 @@ void get_cmd(char * prompt, char **command) {
     getcwd(cwd, MAX_LEN - 2); // END From unistd docs.
     fprintf(stdout, "[%s@%s] (%s) ⇶ ", username, hostname, cwd );// Print the prompt
   }
-  fflush(stdout);
-  fflush(stdin);
+  //fflush(stdout);
+  //fflush(stdin);
   size_t len = 0;
-  *command = malloc(sizeof(char));
   getline(command, &len, stdin);
   strtok(*command, "\n");
 }
@@ -66,12 +67,12 @@ void process_cmd(char *cmd) {
   prog = token;
   int ct = 0;
   while (token != NULL) {
-    token = strtok(NULL, " ");
     if (token != NULL) {
       args = realloc(args, (ct + 1)*sizeof(char *));
       args[ct] = token;
       ct++;
     }
+    token = strtok(NULL, " ");
   }
   if (strcmp(prog, "exit") == 0) {
     kill_shell();

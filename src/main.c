@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,15 +27,16 @@ char whitespace[] = " \t\r\n\v";
 
 void cmd_not_found(char *cmd) {
   fprintf(stderr, "7sh: cmd not found: %s\n", cmd);
-  exit(1);
+  exit(EXIT_FAILURE);
 }
 
-void fork_run_wait(char *cmd, char **args) {
+void fork_run_wait(char *args[]) {
   if ((curr_proc = fork()) == 0) { //store the fork pid so we can C-c it.
-    execvp(cmd, args);
-    free(args);
-    free(cmd);
-    cmd_not_found(cmd);
+    char *path = getenv("PATH"); //tired of not having my path.
+    char  pathenv[strlen(path) + sizeof("PATH=")]; //ensure the PATH= fits.
+    char *envp[] = {pathenv, NULL}; //add a null.
+    execvpe(args[0], args, envp);
+    cmd_not_found(args[0]);
   }
   wait(&curr_proc);
 }
@@ -52,32 +54,37 @@ void get_cmd(char * prompt, char **command) {
     getcwd(cwd, MAX_LEN - 2); // END From unistd docs.
     fprintf(stdout, "[%s@%s] (%s) ⇶ ", username, hostname, cwd );// Print the prompt
   }
-  //fflush(stdout);
-  //fflush(stdin);
+  fflush(stdout);
+  fflush(stderr);
+  fflush(stdin);
   size_t len = 0;
   getline(command, &len, stdin);
   strtok(*command, "\n");
 }
 
 void process_cmd(char *cmd) {
-  int len = strlen(cmd);
-  char *prog;
   char **args = NULL;
-  char *token = strtok(cmd, " ");
-  prog = token;
-  int ct = 0;
+  char * token = strtok(cmd, " ");
+  args = realloc(args, sizeof(char *));
+  args[0] = token;
+  int ct = 1;
   while (token != NULL) {
+    fprintf(stdout, "%s\n", token);
     if (token != NULL) {
       args = realloc(args, (ct + 1)*sizeof(char *));
       args[ct] = token;
       ct++;
+      token = strtok(NULL, " ");
     }
-    token = strtok(NULL, " ");
   }
-  if (strcmp(prog, "exit") == 0) {
-    kill_shell();
+  ct++;
+  args = realloc(args, (ct + 1)*sizeof(char *));
+  args[ct] = NULL;
+  if (strcmp(args[0], "exit") == 0) {
+    exit(EXIT_SUCCESS);
   } else {
-    fork_run_wait(prog, args);
+    fork_run_wait(args);
+    free(args);
   }
 }
 
@@ -92,6 +99,7 @@ int main (int argc, char **argv) {
     char *cmd;
     get_cmd(prompt, &cmd);
     process_cmd(cmd);
+    free(cmd);
   }
 
   return EXIT_SUCCESS; //The shell shouldn't fail.

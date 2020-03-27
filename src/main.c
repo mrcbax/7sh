@@ -68,7 +68,7 @@ void process_cmd(char *cmd) {
     while (token != NULL) {
         token = strtok(NULL, " ");
         if (token != NULL) {
-            args = realloc(args, ct*sizeof(char *));
+            args = realloc(args, (ct + 1)*sizeof(char *));
             args[ct] = token;
             ct++;
         }

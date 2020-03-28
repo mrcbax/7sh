@@ -1,7 +1,7 @@
 #define _GNU_SOURCE
 #include "common.h"
 #include "builtin.h"
-#include <jemalloc/jemalloc.h>
+//#include <jemalloc/jemalloc.h>
 static size_t MAX_LEN = 2000;
 
 int curr_proc;

@@ -20,4 +20,4 @@ default: build
 # $(CC) $(SRC_DIR) -o $(BUILD_DIR) $(CFLAGS)
 
 7sh:
-	$(CC) $(SRC_DIR)/main.c -o $(BUILD_DIR)/7sh $(CFLAGS)
+	pushd $(SRC_DIR); $(CC) main.c builtin.c -o ../$(BUILD_DIR)/7sh $(CFLAGS); popd

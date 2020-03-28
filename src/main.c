@@ -1,4 +1,6 @@
+#ifdef __linux__
 #define _GNU_SOURCE
+#endif
 #include "common.h"
 #include "builtin.h"
 //#include <jemalloc/jemalloc.h>
@@ -6,11 +8,11 @@ static size_t MAX_LEN = 2000;
 
 int curr_proc;
 
-void sigint_procs() {
+void sigint_procs() { //easier than registering two signal handlers.
   kill(curr_proc, SIGINT);
 }
 
-void kill_shell() {
+void kill_shell() { //no longer used. If the user types exit then there is no currently running process so no need to kill those.
   sigint_procs();
   exit(EXIT_SUCCESS);
 }
@@ -35,10 +37,15 @@ void cmd_not_found(char *cmd) {
 
 void fork_run_wait(char *args[]) {
   if ((curr_proc = fork()) == 0) { //store the fork pid so we can C-c it.
-    //char *path = getenv("PATH"); //tired of not having my path.
-    //char  pathenv[strlen(path) + sizeof("PATH=")]; //ensure the PATH= fits.
-    //char *envp[] = {pathenv, NULL}; //add a null.
+    #ifdef __linux__
+    char *path = getenv("PATH"); //tired of not having my path.
+    char  pathenv[strlen(path) + sizeof("PATH=")]; //ensure the PATH= fits.
+    char *envp[] = {pathenv, NULL}; //add a null.
+    execvpe(args[0], args, envp);
+    #endif
+    #ifndef __linux__
     execvp(args[0], args);
+    #endif
     cmd_not_found(args[0]);
   }
   wait(&curr_proc);

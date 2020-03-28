@@ -66,7 +66,7 @@ void get_cmd(char * prompt, char **command) {
 }
 
 void process_cmd(char *cmd) {
-  int num_args = 2;
+  int num_args = 1;
   num_args += find_char(cmd, whitespace[0]);
   num_args += find_char(cmd, whitespace[1]);
   num_args += find_char(cmd, whitespace[2]);

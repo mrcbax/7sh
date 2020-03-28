@@ -32,10 +32,10 @@ void cmd_not_found(char *cmd) {
 
 void fork_run_wait(char *args[]) {
   if ((curr_proc = fork()) == 0) { //store the fork pid so we can C-c it.
-    char *path = getenv("PATH"); //tired of not having my path.
-    char  pathenv[strlen(path) + sizeof("PATH=")]; //ensure the PATH= fits.
-    char *envp[] = {pathenv, NULL}; //add a null.
-    execvpe(args[0], args, envp);
+    //char *path = getenv("PATH"); //tired of not having my path.
+    //char  pathenv[strlen(path) + sizeof("PATH=")]; //ensure the PATH= fits.
+    //char *envp[] = {pathenv, NULL}; //add a null.
+    execvp(args[0], args);
     cmd_not_found(args[0]);
   }
   wait(&curr_proc);
@@ -66,10 +66,8 @@ void process_cmd(char *cmd) {
   char **args = NULL;
   char * token = strtok(cmd, " ");
   args = realloc(args, sizeof(char *));
-  args[0] = token;
-  int ct = 1;
+  int ct = 0;
   while (token != NULL) {
-    fprintf(stdout, "%s\n", token);
     if (token != NULL) {
       args = realloc(args, (ct + 1)*sizeof(char *));
       args[ct] = token;
@@ -79,12 +77,13 @@ void process_cmd(char *cmd) {
   }
   ct++;
   args = realloc(args, (ct + 1)*sizeof(char *));
-  args[ct] = NULL;
+  args[ct+1] = NULL;
   if (strcmp(args[0], "exit") == 0) {
     exit(EXIT_SUCCESS);
   } else {
     fork_run_wait(args);
     free(args);
+    args = NULL;
   }
 }
 
@@ -96,7 +95,7 @@ int main (int argc, char **argv) {
     prompt = argv[1];
   }
   while(true) {
-    char *cmd;
+    char *cmd = malloc(0);
     get_cmd(prompt, &cmd);
     process_cmd(cmd);
     free(cmd);

@@ -1,9 +1,10 @@
 #ifdef __linux__
-#define _GNU_SOURCE
+#define _GNU_SOURCE //linux flag for execvpe.
+#include <jemalloc/jemalloc.h> // a far superior allocator.
 #endif
 #include "common.h"
 #include "builtin.h"
-//#include <jemalloc/jemalloc.h>
+
 static size_t MAX_LEN = 2000;
 
 int curr_proc;
@@ -37,7 +38,7 @@ void cmd_not_found(char *cmd) {
 
 void fork_run_wait(char *args[]) {
   if ((curr_proc = fork()) == 0) { //store the fork pid so we can C-c it.
-    #ifdef __linux__
+    #ifdef __linux__ //allow use of path on systems that support it.
     char *path = getenv("PATH"); //tired of not having my path.
     char  pathenv[strlen(path) + sizeof("PATH=")]; //ensure the PATH= fits.
     char *envp[] = {pathenv, NULL}; //add a null.
@@ -54,7 +55,7 @@ void fork_run_wait(char *args[]) {
 
 void get_cmd(char * prompt, char **command) {
   if (strlen(prompt) > 0) {
-    fprintf(stdout, "%s", prompt);// Print custom prompt.
+    fprintf(stdout, "%s", prompt);//print custom prompt.
   } else {
     char username[MAX_LEN];
     char hostname[MAX_LEN];
@@ -62,59 +63,59 @@ void get_cmd(char * prompt, char **command) {
     getlogin_r(username, MAX_LEN - 2); // BEGIN From unistd docs.
     gethostname(hostname, MAX_LEN - 2);
     getcwd(cwd, MAX_LEN - 2); // END From unistd docs.
-    fprintf(stdout, "[%s@%s] (%s) ⇶ ", username, hostname, cwd );// Print the prompt
+    fprintf(stdout, "[%s@%s] (%s) ⇶ ", username, hostname, cwd );//print the prompt
   }
-  fflush(stdout);
+  fflush(stdout); //not taking any chances here.
   fflush(stderr);
   fflush(stdin);
   size_t len = 0;
-  getline(command, &len, stdin);
-  strtok(*command, "\n");
+  getline(command, &len, stdin); //get the input
+  strtok(*command, "\n"); //get rid of the newline
 }
 
 void process_cmd(char *cmd) {
-  int num_args = 1;
-  num_args += find_char(cmd, whitespace[0]);
+  int num_args = 1; //fixes for raw memory splatter
+  num_args += find_char(cmd, whitespace[0]); //count up the whitespace
   num_args += find_char(cmd, whitespace[1]);
   num_args += find_char(cmd, whitespace[2]);
   num_args += find_char(cmd, whitespace[4]);
-  char **args = malloc(((num_args + 1)*sizeof(char *)) + ((strlen(cmd))*sizeof(char)));
-  char * token = strtok(cmd, " ");
+  char **args = malloc(((num_args + 1)*sizeof(char *)) + ((strlen(cmd))*sizeof(char))); // when using a **array remember to allocate space for pointers AND data, footgunned this one for at least 5 hours.
+  char * token = strtok(cmd, " "); // split off the first token.
   int ct = 0;
   while (token != NULL) {
     if (token != NULL) {
-      args[ct] = token;
+      args[ct] = token; //store the token in the array
       ct++;
-      token = strtok(NULL, " ");
+      token = strtok(NULL, " "); //split off another token
     }
   }
   ct++;
-  args[ct] = NULL;
-  for (int p = 0; p < num_args; p++){
-    fprintf(stdout, "%s\t", args[p]);
-  }
-  fflush(stdout);
-  if(is_builtin(args[0])){
-    exec_builtin(args);
+  args[ct] = NULL; //trailing null to keep exec happy
+  //for (int p = 0; p < num_args; p++){
+  //  fprintf(stdout, "%s\t", args[p]);
+  //}
+  //fflush(stdout);
+  if(is_builtin(args[0]) >= 0){ // test for built in command (see builtin.c)
+    exec_builtin(args); // hand off built in command (see builtin.c)
   } else {
-    fork_run_wait(args);
-    free(args);
-    args = NULL;
+    fork_run_wait(args); // fork and run the process
+    free(args); // clean up to keep the stale pointers away
+    args = NULL; // be extra sure those nasty stale pointers are gone
   }
 }
 
 int main (int argc, char **argv) {
   signal(SIGINT, sigint_procs); //Register C-c handler.
-  signal(SIGTERM, kill_shell);
+  signal(SIGTERM, kill_shell);  //Register C-d? handler?
   char * prompt = "";
-  if (argc > 1) {
+  if (argc > 1) { // check if user supplied a prompt
     prompt = argv[1];
   }
   while(true) {
-    char *cmd;
-    get_cmd(prompt, &cmd);
-    process_cmd(cmd);
-    free(cmd);
+    char *cmd; // a place to store the raw command
+    get_cmd(prompt, &cmd); // command retrieval function
+    process_cmd(cmd); // process the command
+    free(cmd); // clean up after ourselves
   }
 
   return EXIT_SUCCESS; //The shell shouldn't fail.

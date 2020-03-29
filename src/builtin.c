@@ -20,9 +20,11 @@ void exec_builtin(char *args[]) { //executes a built in command
   }
   case 1: { // easteregg
     fprintf(stdout, "_________  _________ ___ ______________.____    .____     \n\\______  \\/   _____//   |   \\_   _____/|    |   |    |    \n    /    /\\_____  \\/    ~    \\    __)_ |    |   |    |    \n   /    / /        \\    Y    /        \\|    |___|    |___ \n  /____/ /_______  /\\___|_  /_______  /|_______ \\_______ \\\n                 \\/       \\/        \\/         \\/       \\/\n");
+    break;
   }
   case 2: { //help command
     fprintf(stdout, "7-Shell: v0.1.0 ©DosLab Electronics, LLC\nLicensed Under GNU GPL3\n\nUsage:\t7sh <prompt_string>\n");
+    break;
   }
   }
 }

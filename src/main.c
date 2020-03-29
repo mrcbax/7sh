@@ -113,6 +113,7 @@ int main (int argc, char **argv) {
   }
   while(true) {
     char *cmd; // a place to store the raw command
+    cmd = malloc(0);
     get_cmd(prompt, &cmd); // command retrieval function
     process_cmd(cmd); // process the command
     free(cmd); // clean up after ourselves

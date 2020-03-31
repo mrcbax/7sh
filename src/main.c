@@ -18,16 +18,6 @@ void kill_shell() { //no longer used. If the user types exit then there is no cu
   exit(EXIT_SUCCESS);
 }
 
-int find_char(char *st, char c) { //locates chars in a string, used for whitespace processing.
-  int count = 0;
-  for (int i = 0; st[i]; i++) {
-    if(st[i] == c) {
-      count++;
-    }
-  }
-  return count;
-}
-
 // BEGIN Borrowed from teenysh.c
 char whitespace[] = " \t\r\n\v";
 
@@ -83,12 +73,7 @@ void get_cmd(char * prompt, char **command) {
 }
 
 void process_cmd(char *cmd) {
-  int num_args = 1; //fixes for raw memory splatter
-  num_args += find_char(cmd, whitespace[0]); //count up the whitespace
-  num_args += find_char(cmd, whitespace[1]);
-  num_args += find_char(cmd, whitespace[2]);
-  num_args += find_char(cmd, whitespace[4]);
-    char **args = NULL;
+  char **args = NULL;
   char * token = strtok(cmd, " "); // split off the first token.
   int ct = 0;
   int isRedirString = 0;
@@ -111,19 +96,15 @@ void process_cmd(char *cmd) {
           inFP = open(token, O_RDONLY);
         }
       } else {
-          args = realloc(args, sizeof (char*) * (ct+1));
+        args = realloc(args, sizeof (char*) * (ct+1));
         args[ct] = strdup(token); //store the token in the array
         ct++;
       }
       token = strtok(NULL, " "); //split off another token
     }
   }
-    args = realloc(args, sizeof (char*) * (ct+1));
-    args[ct] = NULL;
-  //for (int p = 0; p < num_args; p++){
-  //  fprintf(stdout, "%s\t", args[p]);
-  //}
-  //fflush(stdout);
+  args = realloc(args, sizeof (char*) * (ct+1));
+  args[ct] = NULL; // add null terminator to keep execvp happy
   if(is_builtin(args[0]) >= 0){ // test for built in command (see builtin.c)
     exec_builtin(args); // hand off built in command (see builtin.c)
   } else {

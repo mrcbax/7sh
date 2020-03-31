@@ -25,13 +25,14 @@ void cmd_not_found(char *cmd) {
   fprintf(stderr, "7sh: cmd not found: %s\n", cmd);
   exit(EXIT_FAILURE);
 }
+// END Borrowed from teenysh.c
 
-void fork_run_wait(char *args[], int fpTo, int fpFrom) {
+void fork_run_wait(char *args[], int fpTo, int fpFrom) { //borrowed from teenysh.c pretty much in name only
   if ((curr_proc = fork()) == 0) { //store the fork pid so we can C-c it.
     if (fpTo) {
       dup2(fpTo, 1);
       dup2(fpTo, 2);
-      close(fpTo);
+      close(fpTo); // close the fp
     }
     if (fpFrom) {
       dup2(fpFrom, 0);
@@ -41,16 +42,15 @@ void fork_run_wait(char *args[], int fpTo, int fpFrom) {
     char *path = getenv("PATH"); //tired of not having my path.
     char  pathenv[strlen(path) + sizeof("PATH=")]; //ensure the PATH= fits.
     char *envp[] = {pathenv, NULL}; //add a null.
-    execvpe(args[0], args, envp);
+    execvpe(args[0], args, envp); //supported on GNU+Linux
 #endif
 #ifndef __linux__
-    execvp(args[0], args);
+    execvp(args[0], args);//Nasty darwin
 #endif
-    cmd_not_found(args[0]);
+    cmd_not_found(args[0]);//if we fall through then the exec failed.
   }
   wait(&curr_proc);
 }
-// END Borrowed from teenysh.c
 
 void get_cmd(char * prompt, char **command) {
   if (strlen(prompt) > 0) {
@@ -74,36 +74,36 @@ void get_cmd(char * prompt, char **command) {
 
 void process_cmd(char *cmd) {
   char **args = NULL;
-  char * token = strtok(cmd, " "); // split off the first token.
+  char * token = strtok(cmd, " "); //split off the first token
   int ct = 0;
   int isRedirString = 0;
   int outFP = 0;
   int inFP = 0;
   while (token != NULL) {
     if (token != NULL) {
-      if (strcmp(token, ">") == 0) {
+      if (strcmp(token, ">") == 0) { //detect output redirect
         isRedirString = 1;
         outFP = 1;
-      } else if (strcmp(token, "<") == 0) {
+      } else if (strcmp(token, "<") == 0) { //detect input redirect
         isRedirString = 1;
         inFP = 1;
       } else if (isRedirString) {
         isRedirString = 0;
         if (outFP) {
-          outFP = open(token, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+          outFP = open(token, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR); //prepare the file handle for writing
         }
         if (inFP) {
-          inFP = open(token, O_RDONLY);
+          inFP = open(token, O_RDONLY); //prepare the file handle for reading
         }
       } else {
-        args = realloc(args, sizeof (char*) * (ct+1));
+        args = realloc(args, sizeof (char*) * (ct+1)); //clean up
         args[ct] = strdup(token); //store the token in the array
         ct++;
       }
       token = strtok(NULL, " "); //split off another token
     }
   }
-  args = realloc(args, sizeof (char*) * (ct+1));
+  args = realloc(args, sizeof (char*) * (ct+1)); //make room for a null
   args[ct] = NULL; // add null terminator to keep execvp happy
   if(is_builtin(args[0]) >= 0){ // test for built in command (see builtin.c)
     exec_builtin(args); // hand off built in command (see builtin.c)

@@ -38,24 +38,24 @@ void cmd_not_found(char *cmd) {
 
 void fork_run_wait(char *args[], int fpTo, int fpFrom) {
   if ((curr_proc = fork()) == 0) { //store the fork pid so we can C-c it.
-      if (fpTo) {
-          dup2(fpTo, 1);
-          dup2(fpTo, 2);
-          close(fpTo);
-      }
-      if (fpFrom) {
-          dup2(fpFrom, 0);
-          close(fpFrom);
-      }
-    #ifdef __linux__ //allow use of path on systems that support it.
+    if (fpTo) {
+      dup2(fpTo, 1);
+      dup2(fpTo, 2);
+      close(fpTo);
+    }
+    if (fpFrom) {
+      dup2(fpFrom, 0);
+      close(fpFrom);
+    }
+#ifdef __linux__ //allow use of path on systems that support it.
     char *path = getenv("PATH"); //tired of not having my path.
     char  pathenv[strlen(path) + sizeof("PATH=")]; //ensure the PATH= fits.
     char *envp[] = {pathenv, NULL}; //add a null.
     execvpe(args[0], args, envp);
-    #endif
-    #ifndef __linux__
+#endif
+#ifndef __linux__
     execvp(args[0], args);
-    #endif
+#endif
     cmd_not_found(args[0]);
   }
   wait(&curr_proc);
@@ -88,37 +88,37 @@ void process_cmd(char *cmd) {
   num_args += find_char(cmd, whitespace[1]);
   num_args += find_char(cmd, whitespace[2]);
   num_args += find_char(cmd, whitespace[4]);
-  char **args = malloc(((num_args + 1)*sizeof(char *)) + ((strlen(cmd))*sizeof(char))); // when using a **array remember to allocate space for pointers AND data, footgunned this one for at least 5 hours.
+  char **args = malloc(((num_args + 32)*sizeof(char *)) + ((strlen(cmd))*sizeof(char))); // when using a **array remember to allocate space for pointers AND data, footgunned this one for at least 5 hours.
   char * token = strtok(cmd, " "); // split off the first token.
   int ct = 0;
-    int isRedirString = 0;
-    int outFP = 0;
-    int inFP = 0;
+  int isRedirString = 0;
+  int outFP = 0;
+  int inFP = 0;
   while (token != NULL) {
     if (token != NULL) {
-        if (strcmp(token, ">") == 0) {
-            isRedirString = 1;
-            outFP = 1;
-        } else if (strcmp(token, "<") == 0) {
-            isRedirString = 1;
-            inFP = 1;
-        } else if (isRedirString) {
-            isRedirString = 0;
-            if (outFP) {
-                outFP = open(token, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-            }
-            if (inFP) {
-                inFP = open(token, O_RDONLY);
-            }
-        } else {
-            args[ct] = token; //store the token in the array
-            ct++;
+      if (strcmp(token, ">") == 0) {
+        isRedirString = 1;
+        outFP = 1;
+      } else if (strcmp(token, "<") == 0) {
+        isRedirString = 1;
+        inFP = 1;
+      } else if (isRedirString) {
+        isRedirString = 0;
+        if (outFP) {
+          outFP = open(token, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
         }
+        if (inFP) {
+          inFP = open(token, O_RDONLY);
+        }
+      } else {
+        args[ct] = token; //store the token in the array
+        ct++;
+      }
       token = strtok(NULL, " "); //split off another token
     }
   }
   ct++;
-    
+
   args[ct] = NULL; //trailing null to keep exec happy
   //for (int p = 0; p < num_args; p++){
   //  fprintf(stdout, "%s\t", args[p]);

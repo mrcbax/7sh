@@ -36,8 +36,17 @@ void cmd_not_found(char *cmd) {
   exit(EXIT_FAILURE);
 }
 
-void fork_run_wait(char *args[]) {
+void fork_run_wait(char *args[], int fpTo, int fpFrom) {
   if ((curr_proc = fork()) == 0) { //store the fork pid so we can C-c it.
+      if (fpTo) {
+          dup2(fpTo, 1);
+          dup2(fpTo, 2);
+          close(fpTo);
+      }
+      if (fpFrom) {
+          dup2(fpFrom, 0);
+          close(fpFrom);
+      }
     #ifdef __linux__ //allow use of path on systems that support it.
     char *path = getenv("PATH"); //tired of not having my path.
     char  pathenv[strlen(path) + sizeof("PATH=")]; //ensure the PATH= fits.
@@ -82,14 +91,34 @@ void process_cmd(char *cmd) {
   char **args = malloc(((num_args + 1)*sizeof(char *)) + ((strlen(cmd))*sizeof(char))); // when using a **array remember to allocate space for pointers AND data, footgunned this one for at least 5 hours.
   char * token = strtok(cmd, " "); // split off the first token.
   int ct = 0;
+    int isRedirString = 0;
+    int outFP = 0;
+    int inFP = 0;
   while (token != NULL) {
     if (token != NULL) {
-      args[ct] = token; //store the token in the array
-      ct++;
+        if (strcmp(token, ">") == 0) {
+            isRedirString = 1;
+            outFP = 1;
+        } else if (strcmp(token, "<") == 0) {
+            isRedirString = 1;
+            inFP = 1;
+        } else if (isRedirString) {
+            isRedirString = 0;
+            if (outFP) {
+                outFP = open(token, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+            }
+            if (inFP) {
+                inFP = open(token, O_RDONLY);
+            }
+        } else {
+            args[ct] = token; //store the token in the array
+            ct++;
+        }
       token = strtok(NULL, " "); //split off another token
     }
   }
   ct++;
+    
   args[ct] = NULL; //trailing null to keep exec happy
   //for (int p = 0; p < num_args; p++){
   //  fprintf(stdout, "%s\t", args[p]);
@@ -98,7 +127,7 @@ void process_cmd(char *cmd) {
   if(is_builtin(args[0]) >= 0){ // test for built in command (see builtin.c)
     exec_builtin(args); // hand off built in command (see builtin.c)
   } else {
-    fork_run_wait(args); // fork and run the process
+    fork_run_wait(args, outFP, inFP); // fork and run the process
     free(args); // clean up to keep the stale pointers away
     args = NULL; // be extra sure those nasty stale pointers are gone
   }

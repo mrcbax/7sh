@@ -88,7 +88,7 @@ void process_cmd(char *cmd) {
   num_args += find_char(cmd, whitespace[1]);
   num_args += find_char(cmd, whitespace[2]);
   num_args += find_char(cmd, whitespace[4]);
-  char **args = malloc(((num_args + 32)*sizeof(char *)) + ((strlen(cmd))*sizeof(char))); // when using a **array remember to allocate space for pointers AND data, footgunned this one for at least 5 hours.
+    char **args = NULL;
   char * token = strtok(cmd, " "); // split off the first token.
   int ct = 0;
   int isRedirString = 0;
@@ -111,15 +111,15 @@ void process_cmd(char *cmd) {
           inFP = open(token, O_RDONLY);
         }
       } else {
-        args[ct] = token; //store the token in the array
+          args = realloc(args, sizeof (char*) * (ct+1));
+        args[ct] = strdup(token); //store the token in the array
         ct++;
       }
       token = strtok(NULL, " "); //split off another token
     }
   }
-  ct++;
-
-  args[ct] = NULL; //trailing null to keep exec happy
+    args = realloc(args, sizeof (char*) * (ct+1));
+    args[ct] = NULL;
   //for (int p = 0; p < num_args; p++){
   //  fprintf(stdout, "%s\t", args[p]);
   //}
